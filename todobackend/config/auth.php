@@ -37,11 +37,15 @@ return [
 
     'guards' => [
         'web' => [
-            'driver' => 'session',
+            'driver'   => 'session',   // pode ficar, mesmo sem usar
+            'provider' => 'users',
+        ],
+
+        'api' => [
+            'driver'   => 'jwt',       // nosso guard JWT
             'provider' => 'users',
         ],
     ],
-
     /*
     |--------------------------------------------------------------------------
     | User Providers

@@ -2,18 +2,33 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\ChecklistItemController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
+/* Público */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::prefix('auth')->group(function () {
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('login',    [AuthController::class, 'login']);
+});
+
+/* Protegido por JWT */
+Route::middleware('auth:api')->group(function () {
+    Route::post('auth/logout',  [AuthController::class, 'logout']);
+    Route::post('auth/refresh', [AuthController::class, 'refresh']);
+    Route::get('auth/me',      [AuthController::class, 'me']);
+
+    /* Aqui entrarão, na Fase 4, as rotas CRUD de tasks/checklists */
+});
+
+Route::middleware('auth:api')->group(function () {
+    /* ---------- Tasks ---------- */
+    Route::apiResource('tasks', TaskController::class);
+
+    /* ---------- Checklist Items ---------- */
+    Route::apiResource(
+        'tasks.checklist-items',
+        ChecklistItemController::class
+    )->shallow(); // cria /checklist-items/{id}
 });
