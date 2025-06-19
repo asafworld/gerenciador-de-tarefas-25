@@ -8,6 +8,14 @@ use App\Models\Task;
 
 class ChecklistItemController extends Controller
 {
+    public function index(Task $task)
+    {
+
+        $items = $task->checklistItems()->get();
+
+        return response()->json($items);
+    }
+
     public function store(ChecklistItemRequest $request, Task $task)
     {
         $this->authorize('update', $task);
