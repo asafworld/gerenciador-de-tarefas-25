@@ -18,7 +18,10 @@ class TaskController extends Controller
             ->where(function ($q) {
                 $id = auth()->id();
                 $q->where('responsible_user_id', $id)
-                    ->orWhereNull('parent_task_id'); // raiz visíveis a todos? ajuste se necessário
+                    ->orWhere(function ($q) {
+                        $q->whereNull('parent_task_id')
+                            ->whereNull('responsible_user_id');
+                    });
             })
             ->paginate(10);
 

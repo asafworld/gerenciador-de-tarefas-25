@@ -4,14 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Task extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'parent_task_id',
         'description',
         'status',
         'responsible_user_id',
+    ];
+
+    protected $casts = [
+        'responsible_user_id' => 'integer',
     ];
 
     /* ---------------- Relations ---------------- */

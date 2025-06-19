@@ -3,41 +3,55 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use App\Models\Task;
 
 class TaskRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
-    public function authorize()
+    public function authorize(): bool
     {
-        return true;
+        return true;      // a Policy já cuida do resto
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
     public function rules(): array
     {
-        return [
-            'description'          => 'required|string|max:255',
-            'status'               => 'in:pending,in_progress,done',
-            'responsible_user_id'  => 'nullable|exists:users,id',
-            'parent_task_id'       => [
-                'nullable',
+        /* regras comuns aos dois verbos ----------------------------- */
+        $rules = [
+            'status' => [
+                'sometimes',                      // só valida se vier
+                Rule::in(['pending', 'in_progress', 'done']),
+            ],
+
+            'responsible_user_id' => [
+                'sometimes',                      // pode faltar
+                'exists:users,id',
+            ],
+
+            'parent_task_id' => [
+                'sometimes',
                 'exists:tasks,id',
-                // proíbe sub-subtarefa:
-                function ($attr, $val, $fail) {
-                    if (Task::where('id', $val)->whereNotNull('parent_task_id')->exists()) {
+                // proíbe sub-subtarefa
+                function ($attr, $value, $fail) {
+                    if (Task::where('id', $value)
+                        ->whereNotNull('parent_task_id')
+                        ->exists()
+                    ) {
                         $fail('Sub-subtask not allowed.');
                     }
                 },
             ],
         ];
+
+        /* regra específica do POST ---------------------------------- */
+        if ($this->isMethod('post')) {
+            $rules['description'] = 'required|string|max:255';
+        }
+
+        /* regra específica do PUT/PATCH ----------------------------- */
+        if ($this->isMethod('put') || $this->isMethod('patch')) {
+            $rules['description'] = 'sometimes|required|string|max:255';
+        }
+
+        return $rules;
     }
 }
