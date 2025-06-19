@@ -41,7 +41,7 @@ class ChecklistItemPolicy
      */
     public function create(User $user)
     {
-        //
+        return $user->can('update', $user->tasks()->first());
     }
 
     /**
