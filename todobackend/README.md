@@ -1,64 +1,178 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+# Gerenciador de Tarefas – Back‑end (Laravel 8)
+
+## Visão geral
+
+Este repositório implementa a API REST de um **Gerenciador de Tarefas** em PHP / Laravel 8.
+Ele provê autenticação via **JWT**, gestão de tarefas com **sub‑tarefas (apenas 1 nível)** e **check‑lists** independentes em cada nível.
 
 <p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+   <img src="https://img.shields.io/badge/PHP-7.4-blue" />
+   <img src="https://img.shields.io/badge/Laravel-8.x-red" />
+   <img src="https://img.shields.io/badge/Auth-JWT-orange" />
+   <img src="https://img.shields.io/badge/Tests-Pest-green" />
 </p>
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Principais recursos
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Módulo           | Funcionalidades                                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Autenticação** | Registro, login, refresh, logout, rota `me` (JWT).                                                                                                     |
+| **Tarefas**      | CRUD completo; uma tarefa raiz pode ter várias sub‑tarefas; sub‑tarefas **não podem** ter outras sub‑tarefas.                                          |
+| **Check‑lists**  | Cada tarefa (raiz ou sub) possui sua própria to‑do‑list; CRUD completo de itens.                                                                       |
+| **Autorização**  | *Policies* garantem que somente o **responsável** pode atualizar/excluir sua tarefa; tarefas raiz sem responsável são públicas (somente visualização). |
+| **Validação**    | `FormRequest` específicos diferenciam regras de **POST** e **PUT/PATCH**.                                                                              |
+| **Testes**       | Suite Pest cobrindo fluxos positivos, erros 401/403/422, regras de profundidade e policies.                                                            |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Arquitetura & stack
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+* **Laravel 8.83** (PHP 7.4 compat.)
+* **JWT Auth** (`php-open-source-saver/jwt-auth`)
+* **SQLite** (default para testes) ou MySQL/PostgreSQL (produção)
+* **Pest** + PHPUnit para testes
+* **Docker (opcional):** exemplo de `docker-compose.yml` incluído abaixo.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Entidades
 
-## Laravel Sponsors
+```text
+User 1─∞ Task (responsible_user_id)
+Task 1─∞ Task (parent_task_id)   ← máx. 1 nível
+Task 1─∞ ChecklistItem
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+| Tabela               | Campos principais                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **users**            | `id`, `name`, `email`, `password`                                                                           |
+| **tasks**            | `id`, `description`, `status` (`pending`, `in_progress`, `done`), `responsible_user_id?`, `parent_task_id?` |
+| **checklist\_items** | `id`, `description`, `is_done`, `responsible_user_id?`, `task_id`                                           |
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+## Instalação local
 
-## Contributing
+```bash
+# 1. Clone
+$ git clone https://github.com/<org>/todobackend.git && cd todobackend
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# 2. Dependências PHP
+$ composer install --prefer-dist --no-scripts
 
-## Code of Conduct
+# 3. Arquivo de ambiente
+$ cp .env.example .env
+$ php artisan key:generate
+$ php artisan jwt:secret   # gera JWT_SECRET
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# 4. Banco de dados
+#   Por padrão .env está com SQLITE; basta:
+$ touch database/database.sqlite
+$ php artisan migrate --seed
 
-## Security Vulnerabilities
+# 5. Rodar
+$ php artisan serve   # http://localhost:8000
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Docker (opcional)
 
-## License
+> Se preferir rodar tudo em containers, crie o arquivo **`docker-compose.yml`** abaixo na raiz
+> (ou adapte ao seu ambiente) e execute `docker compose up -d --build`.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```yaml
+version: "3.9"
+services:
+  app:
+    build: .
+    container_name: todo-app
+    ports: ["8000:8000"]
+    volumes: [".:/var/www/html"]
+    depends_on: [db]
+    command: bash -c "composer install && php artisan key:generate && php artisan migrate --seed && php -S 0.0.0.0:8000 -t public"
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: todobackend
+      MYSQL_ROOT_PASSWORD: secret
+    ports: ["3306:3306"]
+```
+
+*Inclua um `Dockerfile` simples baseado em `php:8.2-fpm` caso queira personalizar.*
+
+---
+
+## API Reference
+
+### Autenticação (`/api/auth/*`)
+
+| Método | URI              | Body                                          | Descrição                    |
+| ------ | ---------------- | --------------------------------------------- | ---------------------------- |
+| `POST` | `/auth/register` | `{name,email,password,password_confirmation}` | cria usuário & retorna token |
+| `POST` | `/auth/login`    | `{email,password}`                            | gera token                   |
+| `POST` | `/auth/logout`   | –                                             | revoga token atual           |
+| `POST` | `/auth/refresh`  | –                                             | renova token                 |
+| `GET`  | `/auth/me`       | –                                             | dados do usuário autenticado |
+
+### Tarefas (`/api/tasks`)
+
+| Método        | URI           | Body                                       | Acesso                                     |
+| ------------- | ------------- | ------------------------------------------ | ------------------------------------------ |
+| `GET`         | `/tasks`      | –                                          | lista tarefas do usuário + raízes públicas |
+| `GET`         | `/tasks/{id}` | –                                          | detalhes + children + checklist            |
+| `POST`        | `/tasks`      | `description*`, `status`, `parent_task_id` | cria (raiz ou sub)                         |
+| `PUT`/`PATCH` | `/tasks/{id}` | campos parciais                            | atualiza (somente responsável)             |
+| `DELETE`      | `/tasks/{id}` | –                                          | remove                                     |
+
+### Checklist Items (`/api/tasks/{task}/checklist-items`)
+
+| Método        | URI                             | Body                      |
+| ------------- | ------------------------------- | ------------------------- |
+| `GET`         | `/tasks/{task}/checklist-items` | –                         |
+| `POST`        | idem                            | `description*`, `is_done` |
+| `GET`         | `/checklist-items/{id}`         | –                         |
+| `PUT`/`PATCH` | idem                            | campos parciais           |
+| `DELETE`      | idem                            | –                         |
+
+> Todas as rotas (exceto `/auth/register` e `/auth/login`) requerem header
+> `Authorization: Bearer <token>` **+** `Accept: application/json`.
+
+---
+
+## Executando os testes
+
+```bash
+# Ambiente de teste usa SQLite in‑memory
+$ php artisan test        # roda PHPUnit + Pest
+```
+
+### Cobertura
+
+* Autenticação – 100 %
+* CRUD de Tasks – positivo & negativo (401/403/422)
+* CRUD de ChecklistItems – positivo & negativo
+* Policies e regra de profundidade – unit tests
+
+---
+
+## Estrutura de pastas (simplificada)
+
+```
+app/
+ ├── Models/            # User, Task, ChecklistItem
+ ├── Http/
+ │   ├── Controllers/   # Auth, Task, ChecklistItem
+ │   ├── Requests/      # TaskRequest, ChecklistItemRequest
+ │   └── Middleware/
+ ├── Policies/          # TaskPolicy, ChecklistItemPolicy
+ └── Console/
+
+routes/
+ └── api.php            # todas as rotas REST
+
+database/
+ ├── migrations/
+ ├── factories/
+ └── seeders/
+
+tests/                  # suite Pest (Feature & Unit)
+```
