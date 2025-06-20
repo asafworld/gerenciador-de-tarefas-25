@@ -55,7 +55,7 @@ Task 1─∞ ChecklistItem
 
 ```bash
 # 1. Clone
-$ git clone https://github.com/<org>/todobackend.git && cd todobackend
+$ git clone git@github.com:asafworld/gerenciador-de-tarefas-25.git && cd todobackend
 
 # 2. Dependências PHP
 $ composer install --prefer-dist --no-scripts
